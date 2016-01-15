@@ -1,6 +1,6 @@
 import re
 
-from linty_fresh.problem import Problem
+from gandalf.problem import Problem
 
 from typing import Set
 
@@ -15,7 +15,8 @@ def parse(contents: str) -> Set[Problem]:
         match = PYLINT_LINE_REGEX.match(line)
         if match:
             groups = match.groupdict()
-            result.add(Problem(groups['path'],
-                               groups['line'],
-                               groups['message']))
+            path = groups['path']
+            if path.startswith('./'):
+                path = path[2:]
+            result.add(Problem(path, groups['line'], groups['message']))
     return result

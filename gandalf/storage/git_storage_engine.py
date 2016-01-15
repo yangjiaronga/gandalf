@@ -2,7 +2,7 @@ import asyncio
 import json
 import tempfile
 
-from linty_fresh.problem import Problem
+from gandalf.problem import Problem
 
 from typing import Set
 

@@ -1,12 +1,12 @@
 import argparse
 import asyncio
 
-from linty_fresh.linters import checkstyle, mypy, pylint, swiftlint
-from linty_fresh.reporters import github_reporter
-
 from typing import Any, Dict  # noqa
 
-from linty_fresh.storage.git_storage_engine import GitNotesStorageEngine
+from gandalf.linters import checkstyle, mypy, pylint, swiftlint
+from gandalf.reporters import github_reporter
+from gandalf.project import sync_handler
+from gandalf.storage.git_storage_engine import GitNotesStorageEngine
 
 REPORTERS = {
     'github': github_reporter,
@@ -37,7 +37,6 @@ def create_parser() -> argparse.ArgumentParser:
 
 
 async def run_loop(args):
-    args = create_parser().parse_args()
     reporters = []
     for reporter in args.reporter:
         if reporter not in REPORTERS:
@@ -71,8 +70,17 @@ async def run_loop(args):
     await asyncio.gather(*awaitable_array)
 
 
-def main():
-    args = create_parser().parse_args()
+def main(fork_from: str, from_sha: str, repo_name: str, ticket_id: int,
+         pr_url: str, linter: str ='pylint', reporter: str ='github'):
+
+    output_path = sync_handler(
+        fork_from, from_sha, repo_name, ticket_id, pr_url)
+    args = create_parser().parse_args([
+        '--linter', linter, '--reporter', reporter,
+        '--commit', from_sha, '--pr_url', pr_url,
+        output_path
+    ])
+
     loop = asyncio.get_event_loop()
     loop.run_until_complete(run_loop(args))
     loop.close()

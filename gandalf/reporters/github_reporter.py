@@ -7,17 +7,19 @@ import re
 from collections import defaultdict
 
 import aiohttp
-
-from linty_fresh.problem import Problem
-
 from typing import Any, Dict, List, MutableMapping, NamedTuple, Set
 
+from gandalf.problem import Problem
+from gandalf.config import (
+    REPORT_NO_MATCHING, GITHUB_URL, GITHUB_API_URL, REPORT_CLOSEST,
+    COMMENT_HEADER)
 
-PR_URL_REGEX = re.compile(r'https?://.*?github.com/'
+
+PR_URL_REGEX = re.compile(r'https?://.*?{}/'
                           r'(?:repos/)?'
                           r'(?P<organization>[^/]*)/'
                           r'(?P<repo>[^/]*)/pulls?/'
-                          r'(?P<pr_number>\d*)')
+                          r'(?P<pr_number>\d*)'.format(GITHUB_URL.split('/')[2]))
 HUNK_REGEX = re.compile(r'@@ \-\d+,\d+ \+(\d+),\d+ @@')
 FILE_START_REGEX = re.compile(r'\+\+\+ b/(.*)')
 LINK_REGEX = re.compile(r'<(?P<url>.+)>; rel="(?P<rel>\w+)"')
@@ -57,23 +59,26 @@ class GithubReporter(object):
             review_comment_awaitable = []
             pr_url = self._get_pr_url()
             no_matching_line_number = []
+
             for location, problems_for_line in grouped_problems:
-                message_for_line = [':sparkles:Linty Fresh Says:sparkles::',
-                                    '']
+                message_for_line = [
+                    COMMENT_HEADER and '{}:'.format(COMMENT_HEADER) or '', '']
 
                 reported_problems_for_line = set()
 
                 path = location[0]
                 line_number = location[1]
                 position = line_map.get(path, {}).get(line_number, None)
-                if position is None and path in line_map:
+
+                if position is None and path in line_map and REPORT_CLOSEST:
                     file_map = line_map[path]
                     closest_line = min(file_map.keys(),
-                                       key=lambda x: abs(x-line_number))
+                                       key=lambda x: abs(x - line_number))
                     position = file_map[closest_line]
                     message_for_line.append('(From line {})'.format(
                         line_number))
                 message_for_line.append('```')
+
                 if position is not None:
                     for problem in problems_for_line:
                         if problem.message not in reported_problems_for_line:
@@ -96,11 +101,12 @@ class GithubReporter(object):
                     no_matching_line_number.append((location,
                                                     problems_for_line))
             if lint_errors > MAX_LINT_ERROR_REPORTS:
-                message = ''':sparkles:Linty Fresh Says:sparkles::
+                message = '''{0}
 
-Too many lint errors to report inline!  {0} lines have a problem.
-Only reporting the first {1}.'''.format(
-                    lint_errors, MAX_LINT_ERROR_REPORTS)
+Too many lint errors to report inline!  {1} lines have a problem.
+Only reporting the first {2}.'''.format(
+    COMMENT_HEADER and '{}:'.format(COMMENT_HEADER) or '',
+    lint_errors, MAX_LINT_ERROR_REPORTS)
                 data = json.dumps({
                     'body': message
                 })
@@ -108,7 +114,7 @@ Only reporting the first {1}.'''.format(
                     asyncio.ensure_future(client_session.post(
                         self._get_issue_url(),
                         data=data)))
-            if no_matching_line_number:
+            if no_matching_line_number and REPORT_NO_MATCHING:
                 no_matching_line_messages = []
                 for location, problems_for_line in no_matching_line_number:
                     path = location[0]
@@ -145,8 +151,9 @@ Only reporting the first {1}.'''.format(
         headers = {
             'Accept': 'application/vnd.github.diff',
         }
-        url = ('https://api.github.com/repos/'
+        url = ('{api_url}/repos/'
                '{organization}/{repo}/pulls/{pr}'.format(
+                   api_url=GITHUB_API_URL,
                    organization=self.organization,
                    repo=self.repo,
                    pr=self.pr))
@@ -175,18 +182,23 @@ Only reporting the first {1}.'''.format(
         return result
 
     def _get_pr_url(self) -> str:
-        return ('https://api.github.com/repos/'
+        return ('{api_url}/repos/'
                 '{organization}/{repo}/pulls/{pr}/comments'.format(
+                    api_url=GITHUB_API_URL,
                     organization=self.organization,
                     repo=self.repo,
                     pr=self.pr))
 
     def _get_issue_url(self) -> str:
-        return ('https://api.github.com/repos/'
+        return ('{api_url}/v3/repos/'
                 '{organization}/{repo}/issues/{pr}/comments'.format(
+                    api_url=GITHUB_API_URL,
                     organization=self.organization,
                     repo=self.repo,
                     pr=self.pr))
+
+    def _get_branch_sha(self) -> str:
+        pass
 
     async def get_existing_messages(
         self, client_session: aiohttp.ClientSession
@@ -240,10 +252,9 @@ def create_reporter(args: Any) -> GithubReporter:
     if not args.pr_url or not args.commit:
         raise Exception('Must specify both a pr_url and a commit to use the '
                         'github reporter.')
+
+
     auth_token = os.getenv('GITHUB_AUTH_TOKEN')
-    if not auth_token:
-        raise Exception('Environment Variable $GITHUB_AUTH_TOKEN must be set '
-                        'to use the github reporter.')
     match = PR_URL_REGEX.match(args.pr_url)
     if match:
         groups = match.groupdict()

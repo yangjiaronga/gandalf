@@ -19,19 +19,6 @@ setup(
     url='https://github.com/lyft/linty-fresh',
     packages=find_packages(exclude=['tests*']),
     include_package_data=True,
-    setup_requires=[
-        'flake8>=2.2.3',
-        'flake8-blind-except>=0.1.0',
-        'flake8-debugger>=1.4.0',
-        'flake8-import-order>=0.6.1',
-        'flake8-quotes>=0.1.1',
-        'pep8==1.5.7',
-        'pep8-naming>=0.3.3',
-    ],
-    install_requires=[
-        'aiohttp>=0.19.0',
-        'typing>=3.5.0.1',
-    ],
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: Developers',
@@ -40,9 +27,6 @@ setup(
         'Programming Language :: Python :: 3',
         'Topic :: Software Development :: Quality Assurance',
     ],
-    entry_points={
-        'console_scripts': ['linty_fresh = linty_fresh.main:main'],
-    },
     tests_require=[
         'nose>=1.3.3',
         'mock>=1.0.1',
