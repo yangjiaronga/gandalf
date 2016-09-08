@@ -1,3 +1,4 @@
+import os
 import argparse
 import asyncio
 
@@ -18,6 +19,14 @@ LINTERS = {
     'swiftlint': swiftlint,
     'checkstyle': checkstyle,
 }  # type: Dict[str, Any]
+
+
+def touch(fname, times=None):
+    fhandle = open(fname, 'a')
+    try:
+        os.utime(fname, times)
+    finally:
+        fhandle.close()
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -52,6 +61,9 @@ async def run_loop(args):
         ))
     linter = LINTERS[args.linter]
     for lint_file_path in args.files:
+        if os.path.exists(lint_file_path):
+            os.remove(lint_file_path)
+        touch(lint_file_path)
         with open(lint_file_path, 'r') as lint_file:
             problems.update(linter.parse(lint_file.read()))
 

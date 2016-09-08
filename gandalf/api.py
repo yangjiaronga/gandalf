@@ -4,7 +4,6 @@ import os
 from flask import Blueprint, jsonify, make_response, request
 
 from .main import main
-from .project import sync_handler
 from .rqlib import q
 
 api = Blueprint('api', __name__)
