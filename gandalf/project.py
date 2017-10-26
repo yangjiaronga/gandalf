@@ -21,12 +21,12 @@ def sync_handler(fork_from: str, from_sha: str, repo_name: str,
     work_tree = os.path.join(WORK_DIR, fork_from)
     parent_path = os.path.dirname(work_tree)
     credentials = UserPass(USERNAME, PASSWORD)
-    callbacks = pygit2.RemoteCallbacks(credentials=credentials)
+    callbacks = RemoteCallbacks(credentials=credentials)
     if not os.path.exists(parent_path):
         os.makedirs(parent_path)
     if not os.path.exists(work_tree):
         repo = clone_repository(
-            '{0}{1}.git'.format(GITHUB_URL, fork_from), work_tree, callbacks=callables)
+            '{0}{1}.git'.format(GITHUB_URL, fork_from), work_tree, callbacks=callbacks)
     else:
         repo = Repository(work_tree)
 
@@ -49,5 +49,9 @@ def sync_handler(fork_from: str, from_sha: str, repo_name: str,
     subprocess.call(
         '{} . --output-file={}'.format(FLAKE8_EXECUTABLE, output_path),
         shell=True)
+    subprocess.call('sed -i "s/.\///g" `grep -rl "./" {}`'.format(output_path), shell=True)
+    subprocess.call(
+        'linty_fresh --pr_url {} --commit "{}" --linter pylint {}'.\
+        format(pr_url, from_sha, output_path), shell=True)
     os.chdir(cwd)
     return output_path

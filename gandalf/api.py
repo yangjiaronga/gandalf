@@ -4,6 +4,7 @@ import os
 from flask import Blueprint, jsonify, make_response, request
 
 from .main import main
+from .project import sync_handler
 from .rqlib import q
 
 api = Blueprint('api', __name__)
@@ -38,6 +39,6 @@ def index():
     from_sha = data['pull_request']['head']['sha']
     repo_name = data['pull_request']['head']['repo']['full_name']
     fork_from = data['pull_request']['base']['repo']['full_name']
-    q.enqueue(main, fork_from, from_sha, repo_name, ticket_id,
+    q.enqueue(sync_handler, fork_from, from_sha, repo_name, ticket_id,
               pr_url)
     return jsonify({'ok': 1})
