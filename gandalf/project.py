@@ -2,16 +2,16 @@
 import os
 import subprocess
 
-from pygit2 import Repository, GIT_CHECKOUT_FORCE, clone_repository
-from gandalf.config import GITHUB_URL, WORK_DIR, FLAKE8_EXECUTABLE
+from pygit2 import Repository, GIT_CHECKOUT_FORCE, clone_repository, UserPass, RemoteCallbacks
+from gandalf.config import GITHUB_URL, WORK_DIR, FLAKE8_EXECUTABLE, USERNAME, PASSWORD
 
 
-def update_remote(work_tree, repo, repo_name, remote_name):
+def update_remote(work_tree, repo, repo_name, remote_name, callbacks):
     remote = next((r for r in repo.remotes if r.name == remote_name), None)
     if remote is None:
         url = '{0}{1}.git'.format(GITHUB_URL, repo_name)
         remote = repo.create_remote(remote_name, url)
-    remote.fetch()
+    remote.fetch(callbacks=callbacks)
 
 
 def sync_handler(fork_from: str, from_sha: str, repo_name: str,
@@ -20,16 +20,18 @@ def sync_handler(fork_from: str, from_sha: str, repo_name: str,
     output_path = os.path.join(WORK_DIR, output_path.replace('/', '_'))
     work_tree = os.path.join(WORK_DIR, fork_from)
     parent_path = os.path.dirname(work_tree)
+    credentials = UserPass(USERNAME, PASSWORD)
+    callbacks = pygit2.RemoteCallbacks(credentials=credentials)
     if not os.path.exists(parent_path):
         os.makedirs(parent_path)
     if not os.path.exists(work_tree):
         repo = clone_repository(
-            '{0}{1}.git'.format(GITHUB_URL, fork_from), work_tree)
+            '{0}{1}.git'.format(GITHUB_URL, fork_from), work_tree, callbacks=callables)
     else:
         repo = Repository(work_tree)
 
     remote_name = repo_name.split('/')[0]
-    update_remote(work_tree, repo, repo_name, remote_name)
+    update_remote(work_tree, repo, repo_name, remote_name, callbacks=callbacks)
 
     if remote_name == 'origin':
         commit = repo.revparse_single(from_sha)
