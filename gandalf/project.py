@@ -49,7 +49,7 @@ def sync_handler(fork_from: str, from_sha: str, repo_name: str,
     subprocess.call(
         '{} . --output-file={}'.format(FLAKE8_EXECUTABLE, output_path),
         shell=True)
-    subprocess.call('sed -i "s/.\///g" `grep -rl "./" {}`'.format(output_path), shell=True)
+    subprocess.call('sed -i "s/.\///" {}'.format(output_path), shell=True)
     subprocess.call(
         'linty_fresh --pr_url {} --commit "{}" --linter pylint {}'.\
         format(pr_url, from_sha, output_path), shell=True)
