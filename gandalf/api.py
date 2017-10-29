@@ -31,7 +31,7 @@ def index():
     event = request.headers.get('X-Github-Event')
 
     # open
-    if not (event == 'pull_request' and data['action'] == 'opened'):
+    if not (event == 'pull_request' and data['action'] in ('opened', 'reopened')):
         return jsonify({'error': 'Only support pull request open event'})
 
     pr_url = data['pull_request']['html_url']
