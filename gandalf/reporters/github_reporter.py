@@ -24,7 +24,7 @@ HUNK_REGEX = re.compile(r'@@ \-\d+,\d+ \+(\d+),\d+ @@')
 FILE_START_REGEX = re.compile(r'\+\+\+ b/(.*)')
 LINK_REGEX = re.compile(r'<(?P<url>.+)>; rel="(?P<rel>\w+)"')
 NEW_FILE_SECTION_START = 'diff --git a'
-MAX_LINT_ERROR_REPORTS = 10
+MAX_LINT_ERROR_REPORTS = 200
 
 ExistingGithubMessage = NamedTuple('ExistingGithubMessage',
                                    [('path', str),
@@ -116,7 +116,7 @@ Only reporting the first {2}.'''.format(
                         data=data)))
             if no_matching_line_number and REPORT_NO_MATCHING:
                 no_matching_line_messages = []
-                for location, problems_for_line in no_matching_line_number:
+                for location, problems_for_line in no_matching_line_number[:10]:
                     path = location[0]
                     line_number = location[1]
                     no_matching_line_messages.append(
