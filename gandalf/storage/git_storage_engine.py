@@ -7,7 +7,7 @@ from gandalf.problem import Problem
 from typing import Set
 
 
-MAX_REVISIONS = 10
+MAX_REVISIONS = 300
 NOTES_REF = 'refs/notes/linty_fresh'
 GIT_SUBPROCESS_KWARGS = {
     'stdout': asyncio.subprocess.PIPE,
